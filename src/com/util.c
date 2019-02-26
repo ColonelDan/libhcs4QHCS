@@ -262,9 +262,12 @@ loop:
 void internal_naive_random_prime(mpz_t rop, gmp_randstate_t rstate, mp_bitcnt_t bitcnt)
 {
     /* Technically in small cases we could get a prime of n + 1 bits */
-    mpz_urandomb(rop, rstate, bitcnt);
-    mpz_setbit(rop, bitcnt);
-    mpz_nextprime(rop, rop);
+    //mpz_urandomb(rop, rstate, bitcnt);
+    //mpz_setbit(rop, bitcnt);
+    //mpz_nextprime(rop, rop);
+	mpz_urandomb(rop, rstate, bitcnt-1);
+	mpz_setbit(rop, bitcnt-1);
+	mpz_nextprime(rop, rop);
 }
 
 /* Generate a prime rop1 which is equal to 2 * rop2 + 1 where rop2 is also

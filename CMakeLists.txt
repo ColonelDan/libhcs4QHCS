@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 project(libhcs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ".cmake")
 
+include_directories(/root/QAT/quickassist/include /root/QAT/quickassist/include/lac /root/QAT/quickassist/include/dc /root/QAT/quickassist/lookaside/access_layer/include /root/QAT/quickassist/lookaside/access_layer/src/sample_code/functional/include /root/QAT/quickassist/utilities/libusdm_drv/ /root/QAT/quickassist/lookaside/access_layer/src/sample_code/fips)
+
+add_definitions(-DUSER_SPACE -DDO_CRYPTO -DWITH_UPSTREAM -DWITH_CMDRV -fpermissive)
+
+link_libraries(/root/QAT/quickassist/lookaside/access_layer/src/sample_code/fips/build/linux_2.6/user_space/fips_sample.a /root/QAT/build/libqat_s.so /root/QAT/quickassist/utilities/libusdm_drv//linux/build/linux_2.6/user_space/libusdm_drv.a -lpthread -lcrypto -ludev)
+
 execute_process(COMMAND ${CMAKE_C_COMPILER} -v)
 find_package(GMP REQUIRED)
 find_package(OpenMP)
@@ -21,8 +27,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_DIR})
 
 # BEGIN: Project configuration
 file(GLOB srcs "src/*.c" "src/com/*.c")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Wextra -std=c99")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++11")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -Wall -Wextra -std=c99")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -Wall -Wextra -std=c++11")
 
 include(TestBigEndian)
 test_big_endian(IsBigEndian)

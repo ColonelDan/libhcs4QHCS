@@ -47,6 +47,11 @@
 #include "com/parson.h"
 #include "com/util.h"
 
+#include "../include/libhcs/pcs_qat_offload.h"
+//extern CpaInstanceHandle CyInstHandle;
+
+#define USING_QAT_OFFLOAD
+
 pcs_public_key* pcs_init_public_key(void)
 {
     pcs_public_key *pk = malloc(sizeof(pcs_public_key));
@@ -149,29 +154,58 @@ void pcs_encrypt_r(pcs_public_key *pk, mpz_t rop, mpz_t plain1, mpz_t r)
     mpz_clear(t1);
 }
 
+#ifndef USING_QAT_OFFLOAD
 void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1)
 {
-    mpz_t t1;
-    mpz_init(t1);
+	mpz_t t1;
+	mpz_init(t1);
 
-    #pragma omp parallel sections
-    {
-        #pragma omp section
-        {
-            mpz_random_in_mult_group(t1, hr->rstate, pk->n);
-            mpz_powm(t1, t1, pk->n, pk->n2);
-        }
-        #pragma omp section
-        {
-            mpz_powm(rop, pk->g, plain1, pk->n2);
-        }
-    }
+#pragma omp parallel sections
+	{
+#pragma omp section
+		{
+			mpz_random_in_mult_group(t1, hr->rstate, pk->n);
+			mpz_powm(t1, t1, pk->n, pk->n2);
+		}
+#pragma omp section
+		{
+			mpz_powm(rop, pk->g, plain1, pk->n2);
+		}
+	}
 
-    mpz_mul(rop, rop, t1);
-    mpz_mod(rop, rop, pk->n2);
+	mpz_mul(rop, rop, t1);
+	mpz_mod(rop, rop, pk->n2);
 
-    mpz_clear(t1);
+	mpz_clear(t1);
 }
+#else
+void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1, CpaInstanceHandle* pCyInstHandle)
+{
+	mpz_t t1;
+	mpz_init(t1);
+
+//#pragma omp parallel sections
+//	{
+//#pragma omp section
+//		{
+			mpz_random_in_mult_group(t1, hr->rstate, pk->n);
+			//mpz_powm(t1, t1, pk->n, pk->n2);
+			PowModN(t1, t1, pk->n, pk->n2, pCyInstHandle);
+		//}
+//#pragma omp section
+		//{
+			//mpz_powm(rop, pk->g, plain1, pk->n2);
+			PowModN(rop, pk->g, plain1, pk->n2, pCyInstHandle);
+
+		//}
+	//}
+
+	mpz_mul(rop, rop, t1);
+	mpz_mod(rop, rop, pk->n2);
+
+	mpz_clear(t1);
+}
+#endif
 
 void pcs_reencrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t op)
 {

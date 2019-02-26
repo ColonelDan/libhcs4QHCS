@@ -19,6 +19,8 @@
 #include <gmp.h>
 #include "hcs_random.h"
 
+#include "cpa.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -97,8 +99,8 @@ void pcs_generate_key_pair(pcs_public_key *pk, pcs_private_key *vk,
  * @param rop mpz_t where the encrypted result is stored
  * @param plain1 mpz_t to be encrypted
  */
-void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1);
-
+//void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1); 
+void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1, CpaInstanceHandle* pCyInstHandle);
 /**
  * Encrypt a value @p plain1, and set @p rop to the encrypted result. Do not
  * randomly generate an r value, instead, use the given @p r. This is largely

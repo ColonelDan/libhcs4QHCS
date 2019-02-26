@@ -9,4 +9,6 @@
 #include "libhcs/djcs_t.h"
 #include "libhcs/egcs.h"
 
+#include "libhcs/pcs_qat_offload.h"
+
 #endif
