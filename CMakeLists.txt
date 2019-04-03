@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(libhcs)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ".cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/.cmake")
 
 include_directories(/root/QAT/quickassist/include /root/QAT/quickassist/include/lac /root/QAT/quickassist/include/dc /root/QAT/quickassist/lookaside/access_layer/include /root/QAT/quickassist/lookaside/access_layer/src/sample_code/functional/include /root/QAT/quickassist/utilities/libusdm_drv/ /root/QAT/quickassist/lookaside/access_layer/src/sample_code/fips)
 
