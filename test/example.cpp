@@ -28,6 +28,14 @@ int main(void)
 	pcs_encrypt(pk, hr, b, b, &CyInstHandle);  // Encrypt b (= 76) and store back into b
 	gmp_printf("a = %Zd\nb = %Zd\n", a, b); // can use all gmp functions still
 
+	pcs_decrypt(vk, a, a);  // Decrypt a (= 50) and store back into a
+	pcs_decrypt(vk, b, b);  // Decrypt b (= 76) and store back into b
+	gmp_printf("a = %Zd\nb = %Zd\n", a, b);
+
+	pcs_encrypt(pk, hr, a, a, &CyInstHandle);  // Encrypt a (= 50) and store back into a
+	pcs_encrypt(pk, hr, b, b, &CyInstHandle);  // Encrypt b (= 76) and store back into b
+	gmp_printf("a = %Zd\nb = %Zd\n", a, b); // can use all gmp functions still
+
 	pcs_ee_add(pk, c, a, b);    // Add encrypted a and b values together into c
 	pcs_decrypt(vk, c, c);      // Decrypt c back into c using private key
 	gmp_printf("%Zd\n", c);     // output: c = 126
