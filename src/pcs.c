@@ -50,7 +50,7 @@
 #include "../include/libhcs/pcs_qat_offload.h"
 //extern CpaInstanceHandle CyInstHandle;
 
-//#define USING_QAT_OFFLOAD
+#define USING_QAT_OFFLOAD
 
 pcs_public_key* pcs_init_public_key(void)
 {
