@@ -8,13 +8,17 @@ add_definitions(-DUSER_SPACE -DDO_CRYPTO -DWITH_UPSTREAM -DWITH_CMDRV -fpermissi
 
 link_libraries(/root/QAT/quickassist/lookaside/access_layer/src/sample_code/fips/build/linux_2.6/user_space/fips_sample.a /root/QAT/build/libqat_s.so /root/QAT/quickassist/utilities/libusdm_drv//linux/build/linux_2.6/user_space/libusdm_drv.a -lpthread -lcrypto -ludev)
 
+#LINK£ºopenssl
+include_directories(/home/dan/openssl-master-g/include/ )
+link_libraries(/home/dan/openssl-master-g/libssl.so /home/dan/openssl-master-g/libcrypto.so)
+
 execute_process(COMMAND ${CMAKE_C_COMPILER} -v)
 find_package(GMP REQUIRED)
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CXXMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
+#find_package(OpenMP)
+#if (OPENMP_FOUND)
+#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+#    set(CMAKE_CXX_FLAGS "${CXXMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+#endif()
 
 set(LIBRARY_NAME "hcs")
 set(LIBRARY_DIR "lib/")

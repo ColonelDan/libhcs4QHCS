@@ -1,6 +1,234 @@
 //include QAT headers
 #include "../include/libhcs/pcs_qat_offload.h"
 
+#include <openssl/async.h>
+#include <openssl/crypto.h>
+//#include <../crypto/async/arch/async_local.h>
+//#include "/home/dan/openssl-master-g/crypto/async/async_locl.h"
+
+//# include <unistd.h>
+//# include <pthread.h>
+//#  include <ucontext.h>
+//#  include <setjmp.h>
+//
+//typedef struct async_fibre_st {
+//	ucontext_t fibre;
+//	jmp_buf env;
+//	int env_init;
+//} async_fibre;
+//
+//struct async_job_st {
+//	async_fibre fibrectx;
+//	int(*func) (void *);
+//	void *funcargs;
+//	int ret;
+//	int status;
+//	ASYNC_WAIT_CTX *waitctx;
+//};
+//typedef struct async_job_st ASYNC_JOB;
+
+static void asymCallback(void *pCallbackTag,
+	CpaStatus status,
+	void *pOpData,
+	CpaFlatBuffer *pOut)
+{
+	PRINT_DBG("CallBack function\n");
+
+	if (CPA_STATUS_SUCCESS != status)
+	{
+		PRINT_ERR("operation not a success, status = %d\n", status);
+	}
+
+	PRINT_DBG("asymCallback: status = %d\n", status);
+
+	ASYNC_JOB *job = (ASYNC_JOB *)pCallbackTag;
+	int ret;
+	ASYNC_start_job(&job, NULL, &ret, NULL, NULL, NULL);
+}
+/**
+ *****************************************************************************
+ * @ingroup fipsSampleCodeUtils
+ *      doModExp
+ *
+ * @description
+ *      Do a Modular Exponentiation operaton
+ *      target = (base ^ exponent) mod (modulus);
+ *
+ * @param[in]  pBase             base value
+ * @param[in]  pExponent         exponent value, if this value is NULL, an
+ *                               exponent of 1 is used.
+ * @param[in]  pModulus          modulus value
+ * @param[in]  instanceHandle    QA instance handle
+ *
+ * @param[out] pTarget           result value
+ *
+ * @retval CPA_STATUS_SUCCESS
+ *         CPA_STATUS_FAIL
+ *
+ * @pre
+ *     none
+ * @post
+ *     none
+ *****************************************************************************/
+CpaStatus doModExpAsync(const CpaFlatBuffer *restrict pBase,
+	const CpaFlatBuffer *restrict pExponent,
+	const CpaFlatBuffer *restrict pModulus,
+	CpaFlatBuffer *pTarget,
+	const CpaInstanceHandle instanceHandle)
+{
+	printf("now is doModExpAsync !\n");
+	CpaStatus status = CPA_STATUS_SUCCESS;
+	Cpa32U maxCyRetries = 0;
+	Cpa8S statusErrorString[CPA_STATUS_MAX_STR_LENGTH_IN_BYTES] = {
+		0,
+	};
+	CpaCyLnModExpOpData modExpOpData = {
+		.modulus = {.dataLenInBytes = pModulus->dataLenInBytes,
+					.pData = pModulus->pData},
+		.base = {.dataLenInBytes = pBase->dataLenInBytes,
+				 .pData = pBase->pData},
+		.exponent = {.dataLenInBytes = 0,.pData = NULL} };
+
+	/*if exponent is NULL, set value to 1*/
+	if (NULL == pExponent)
+	{
+		modExpOpData.exponent.pData = osZalloc(1, instanceHandle);
+		if (NULL == modExpOpData.exponent.pData)
+		{
+			PRINT_ERR("internal exponent alloc fail \n");
+			status = CPA_STATUS_FAIL;
+			goto finish;
+		}
+		*modExpOpData.exponent.pData = 1;
+		modExpOpData.exponent.dataLenInBytes = 1;
+	}
+	else
+	{
+		modExpOpData.exponent.pData = pExponent->pData;
+		modExpOpData.exponent.dataLenInBytes = pExponent->dataLenInBytes;
+	}
+
+	ASYNC_JOB *currjob = ASYNC_get_current_job();
+
+	do
+	{
+		status = cpaCyLnModExp(instanceHandle,
+			asymCallback, /*callback function*/
+			currjob, /*callback tag*/
+			&modExpOpData,
+			pTarget);
+		if ((CPA_STATUS_RETRY != status) && (CPA_STATUS_SUCCESS != status))
+		{
+			if (CPA_STATUS_SUCCESS !=
+				cpaCyGetStatusText(instanceHandle, status, statusErrorString))
+			{
+				PRINT_ERR("Error retrieving status string.\n");
+			}
+			PRINT_ERR("doModExp Fail -- %s\n", statusErrorString);
+			status = CPA_STATUS_FAIL;
+			goto finish;
+		}
+		if (CPA_STATUS_SUCCESS == status)
+		{
+			break;
+		}
+		maxCyRetries++;
+	} while ((CPA_STATUS_RETRY == status) &&
+		FIPS_MAX_CY_RETRIES != maxCyRetries);
+
+	/*Sets fail if maxCyRetries == FIPS_MAX_CY_RETRIES*/
+	CHECK_MAX_RETRIES(maxCyRetries, status);
+	ASYNC_pause_job();
+
+finish:
+	if (NULL == pExponent)
+	{
+		osFree(&modExpOpData.exponent.pData);
+	}
+	if (CPA_STATUS_SUCCESS != status)
+	{
+		return CPA_STATUS_FAIL;
+	}
+	return CPA_STATUS_SUCCESS;
+}
+
+/**
+ *****************************************************************************
+ * @ingroup fipsSampleCodeUtils
+ *      doModInv
+ *
+ * @description
+ *      Get the inverse modulus of a number:
+ *      target = (base ^ -1) mod (modulus);
+ *
+ * @param[in]  pBase             base value
+ * @param[in]  pModulus          modulus value
+ * @param[out] pTarget           Result is stored here
+ * @param[in]  instanceHandle    QA instance handle
+ *
+ * @retval CPA_STATUS_SUCCESS
+ *         CPA_STATUS_FAIL
+ *
+ * @pre
+ *     none
+ * @post
+ *     none
+ *****************************************************************************/
+CpaStatus doModInvAsync(const CpaFlatBuffer *restrict pBase,
+	const CpaFlatBuffer *restrict pModulus,
+	CpaFlatBuffer *pTarget,
+	const CpaInstanceHandle instanceHandle)
+{
+
+	CpaStatus status = CPA_STATUS_SUCCESS;
+	Cpa32U maxCyRetries = 0;
+	Cpa8S statusErrorString[CPA_STATUS_MAX_STR_LENGTH_IN_BYTES] = {
+		0,
+	};
+	CpaCyLnModInvOpData modInvOpData = {
+		.A = {.dataLenInBytes = pBase->dataLenInBytes,.pData = pBase->pData},
+		.B = {.dataLenInBytes = pModulus->dataLenInBytes,
+			  .pData = pModulus->pData} };
+
+	ASYNC_JOB *currjob = ASYNC_get_current_job();
+
+	do
+	{
+		status = cpaCyLnModInv(instanceHandle,
+			asymCallback, /*callback function*/
+			currjob, /*callback tag*/
+			&modInvOpData,
+			pTarget);
+		if ((CPA_STATUS_RETRY != status) && (CPA_STATUS_SUCCESS != status))
+		{
+			if (CPA_STATUS_SUCCESS !=
+				cpaCyGetStatusText(instanceHandle, status, statusErrorString))
+			{
+				PRINT_ERR("Error retrieving status string.\n");
+			}
+			PRINT_ERR("Mod Inv Fail -- %s\n", statusErrorString);
+			status = CPA_STATUS_FAIL;
+			break;
+		}
+		if (CPA_STATUS_SUCCESS == status)
+		{
+			break;
+		}
+		maxCyRetries++;
+	} while ((CPA_STATUS_RETRY == status) &&
+		FIPS_MAX_CY_RETRIES != maxCyRetries);
+
+	/*Sets fail if maxCyRetries == FIPS_MAX_CY_RETRIES*/
+	CHECK_MAX_RETRIES(maxCyRetries, status);
+	ASYNC_pause_job();
+
+	if (CPA_STATUS_SUCCESS != status)
+	{
+		return CPA_STATUS_FAIL;
+	}
+	return CPA_STATUS_SUCCESS;
+}
+
 void test()
 {
 	printf("test !\n");
@@ -27,7 +255,7 @@ CpaStatus QATSetting(CpaInstanceHandle* CyInstHandle)
 
 	// return fipsSampleGetQaInstance(pCyInstHandle);
 	stat = fipsSampleGetQaInstance(CyInstHandle);
-	sampleCyStartPolling(*CyInstHandle);
+	//sampleCyStartPolling(*CyInstHandle);
 	return stat;
 }
 
@@ -111,7 +339,7 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 	mCpaFlatBuffer = WarpData(m, m_size, 0);
 	resultCpaFlatBuffer = WarpData(NULL, m_size, 1);
 
-	status = doModExp(
+	status = doModExpAsync(
 		aCpaFlatBuffer,
 		bCpaFlatBuffer,
 		mCpaFlatBuffer,
@@ -138,7 +366,7 @@ CpaFlatBuffer* ModInv(char* a, size_t a_size,
 	mCpaFlatBuffer = WarpData(m, m_size, 0);
 	resultCpaFlatBuffer = WarpData(NULL, m_size, 1);
 
-	status = doModInv(
+	status = doModInvAsync(
 		aCpaFlatBuffer,
 		mCpaFlatBuffer,
 		resultCpaFlatBuffer,

@@ -50,6 +50,9 @@
 #include "../include/libhcs/pcs_qat_offload.h"
 //extern CpaInstanceHandle CyInstHandle;
 
+#include <openssl/async.h>
+#include <openssl/crypto.h>
+
 #define USING_QAT_OFFLOAD
 
 pcs_public_key* pcs_init_public_key(void)

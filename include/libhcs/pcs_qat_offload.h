@@ -5,6 +5,7 @@
 #include "cpa_cy_im.h"
 #include "cpa_fips_sample.h"
 #include "cpa_fips_sample_utils.h"
+//#include "icp_sal_poll.h"	//icp_sal_CyPollInstance
 
 #include <gmp.h>
 
