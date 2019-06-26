@@ -117,6 +117,12 @@ CpaStatus doModExpAsync(const CpaFlatBuffer *restrict pBase,
 			currjob, /*callback tag*/
 			&modExpOpData,
 			pTarget);
+		//if (status == CPA_STATUS_RETRY)
+		//{
+		//	while (icp_sal_CyPollInstance(instanceHandle, 0) != CPA_STATUS_SUCCESS)
+		//		;
+		//}
+
 		if ((CPA_STATUS_RETRY != status) && (CPA_STATUS_SUCCESS != status))
 		{
 			if (CPA_STATUS_SUCCESS !=
@@ -134,7 +140,7 @@ CpaStatus doModExpAsync(const CpaFlatBuffer *restrict pBase,
 		}
 		maxCyRetries++;
 	} while ((CPA_STATUS_RETRY == status) &&
-		FIPS_MAX_CY_RETRIES != maxCyRetries);
+		1000000000 != maxCyRetries);	//FIPS_MAX_CY_RETRIES != maxCyRetries);
 
 	/*Sets fail if maxCyRetries == FIPS_MAX_CY_RETRIES*/
 	CHECK_MAX_RETRIES(maxCyRetries, status);
