@@ -182,26 +182,47 @@ void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1, Cp
 	mpz_clear(t1);
 }
 #else
+
+struct elem_PowModN {
+	int i;
+	mpz_t* rop;
+	mpz_t* r;
+	mpz_t* n;
+	mpz_t* n2;
+	CpaInstanceHandle* pCyInstHandle;
+	int j;
+};
+AsyncPowModN(struct elem_PowModN* pArg)
+{
+	PowModN(*(pArg->rop), *(pArg->r), *(pArg->n), *(pArg->n2), pArg->pCyInstHandle);
+}
 void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1, CpaInstanceHandle* pCyInstHandle)
 {
 	mpz_t t1;
 	mpz_init(t1);
 
-#pragma omp parallel sections
-	{
-#pragma omp section
-		{
+//#pragma omp parallel sections
+//	{
+//#pragma omp section
+//		{
 			mpz_random_in_mult_group(t1, hr->rstate, pk->n);
 			//mpz_powm(t1, t1, pk->n, pk->n2);
-			PowModN(t1, t1, pk->n, pk->n2, pCyInstHandle);
-		}
-#pragma omp section
-		{
+			//PowModN(t1, t1, pk->n, pk->n2, pCyInstHandle);
+
+			ASYNC_JOB* job = NULL;
+			ASYNC_WAIT_CTX* ctx = NULL;
+			int ret;
+			struct elem_PowModN arg = {2, &t1, &t1, &(pk->n), &(pk->n2), pCyInstHandle,2 };
+			struct elem_PowModN* pArg = &arg;
+			ASYNC_start_job(&job, ctx, &ret, AsyncPowModN, pArg, sizeof(struct elem_PowModN));
+//		}
+//#pragma omp section
+//		{
 			//mpz_powm(rop, pk->g, plain1, pk->n2);
 			PowModN(rop, pk->g, plain1, pk->n2, pCyInstHandle);
 
-		}
-	}
+	//	}
+	//}
 
 	mpz_mul(rop, rop, t1);
 	mpz_mod(rop, rop, pk->n2);
