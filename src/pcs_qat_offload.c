@@ -1,5 +1,5 @@
 //include QAT headers
-//#define DEBUG
+#define DEBUG
 #include "../include/libhcs/pcs_qat_offload.h"
 
 #include <openssl/async.h>
@@ -218,8 +218,67 @@ void test()
 {
 	PRINT_DBG("test !\n");
 }
+CpaStatus getCryptoInstance(Cpa16U* numInst_g, CpaInstanceHandle* inst_g)
+{
 
-CpaStatus QATSetting(CpaInstanceHandle* CyInstHandle)
+	CpaStatus status = CPA_STATUS_FAIL;
+	Cpa32U i = 0;
+	Cpa32U coreAffinity = 0;
+	CpaInstanceInfo2 info = { 0 };
+
+	/*get the number of crypto instances*/
+	status = cpaCyGetNumInstances(numInst_g);
+	// numInst_g--;
+	if (CPA_STATUS_SUCCESS != status)
+	{
+		PRINT_ERR("cpaCyGetNumInstances failed with status: %d\n", status);
+		return status;
+	}
+	PRINT_DBG("numInst_g = %hd\n", *numInst_g);
+	if (*numInst_g > 0)
+	{
+		/*allocate memory to store the instance handles*/
+		//*inst_g = qaeMemAlloc(sizeof(CpaInstanceHandle) * (*numInst_g));
+
+		//inst_g = malloc(sizeof(CpaInstanceHandle) * (*numInst_g));
+		//CpaInstanceHandle* test = NULL;
+		////test = malloc(sizeof(CpaInstanceHandle) * (*numInst_g));
+		//test = (CpaInstanceHandle*)malloc(sizeof(CpaInstanceHandle) * (*numInst_g));
+		//inst_g = test;
+
+
+		if (inst_g == NULL)
+		{
+			PRINT_ERR("Failed to allocate memory for instances\n");
+			return CPA_STATUS_FAIL;
+		}
+		/*get the instances handles and place in allocated memory*/
+		status = cpaCyGetInstances(*numInst_g, inst_g);
+		if (CPA_STATUS_SUCCESS != status)
+		{
+			PRINT_ERR("cpaCyGetInstances failed with status: %d\n", status);
+			return status;
+		}
+
+		/*start all instances*/
+		for (int i = 0; i < *numInst_g; i++)
+		{
+			if (status = cpaCyStartInstance(*(inst_g + i)) == CPA_STATUS_FAIL)
+				return CPA_STATUS_FAIL;
+			if (status = cpaCySetAddressTranslation(*(inst_g + i), sampleVirtToPhys) == CPA_STATUS_FAIL)
+				return CPA_STATUS_FAIL;
+		}
+
+	}
+	else
+	{
+		PRINT("There are no crypto instances\n");
+		return CPA_STATUS_FAIL;
+	}
+	// numInst_g--;
+	return status;
+}
+CpaStatus QATSetting(Cpa16U* numInst_g, CpaInstanceHandle* CyInstHandle)
 {
 	CpaStatus stat = CPA_STATUS_SUCCESS;
 
@@ -238,8 +297,9 @@ CpaStatus QATSetting(CpaInstanceHandle* CyInstHandle)
 		return (int)stat;
 	}
 
-	stat = fipsSampleGetQaInstance(CyInstHandle);
+	//stat = fipsSampleGetQaInstance(CyInstHandle);
 	//sampleCyStartPolling(*CyInstHandle);
+	stat = getCryptoInstance(numInst_g, CyInstHandle);
 	return stat;
 }
 

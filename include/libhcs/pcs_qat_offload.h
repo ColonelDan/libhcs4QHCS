@@ -18,7 +18,7 @@ typedef __SIZE_TYPE__ size_t;
 extern "C" {
 #endif
 
-CpaStatus QATSetting(CpaInstanceHandle* pCyInstHandle);
+CpaStatus QATSetting(Cpa16U* numInst_g, CpaInstanceHandle* CyInstHandle);
 void test();
 
 char* data_export(const mpz_t* mpz_data, size_t* got_count);

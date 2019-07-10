@@ -7,7 +7,8 @@ int main(void)
 {
 	test();
 	CpaInstanceHandle CyInstHandle;
-	CpaStatus rt = QATSetting(&CyInstHandle);
+	Cpa16U numInst;
+	CpaStatus rt = QATSetting(&numInst, &CyInstHandle);
 
 	// initialize data structures
 	pcs_public_key *pk = pcs_init_public_key();
