@@ -10,11 +10,11 @@ link_libraries(/root/QAT/quickassist/lookaside/access_layer/src/sample_code/fips
 
 execute_process(COMMAND ${CMAKE_C_COMPILER} -v)
 find_package(GMP REQUIRED)
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CXXMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
+#find_package(OpenMP)
+#if (OPENMP_FOUND)
+#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+#    set(CMAKE_CXX_FLAGS "${CXXMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+#endif()
 
 set(LIBRARY_NAME "hcs")
 set(LIBRARY_DIR "lib/")
