@@ -1,3 +1,4 @@
+#define DEBUG
 //include QAT headers
 #include "../include/libhcs/pcs_qat_offload.h"
 
@@ -76,7 +77,7 @@ CpaStatus doModExpAsync(const CpaFlatBuffer *restrict pBase,
 	CpaFlatBuffer *pTarget,
 	const CpaInstanceHandle instanceHandle)
 {
-	printf("now is doModExpAsync !\n");
+	PRINT_DBG("now is doModExpAsync !\n");
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	Cpa32U maxCyRetries = 0;
 	Cpa8S statusErrorString[CPA_STATUS_MAX_STR_LENGTH_IN_BYTES] = {
@@ -237,7 +238,7 @@ CpaStatus doModInvAsync(const CpaFlatBuffer *restrict pBase,
 
 void test()
 {
-	printf("test !\n");
+	PRINT_DBG("test !\n");
 }
 
 CpaStatus QATSetting(CpaInstanceHandle* CyInstHandle)
@@ -272,7 +273,7 @@ char* data_export(const mpz_t* mpz_data, size_t* got_count)
 	//			size_t got_count;
 	int char_data_size = (*mpz_data)[0]._mp_size * sizeof(mp_limb_t);
 	//std::cout << "char_data_size = " << char_data_size << std::endl;
-	printf("char_data_size = %d\n", char_data_size);
+	PRINT_DBG("char_data_size = %d\n", char_data_size);
 	//			char char_data[char_data_size];
 	//			char_data = 0x1111;
 	//			std::cout<<"*************"<<std::endl;
@@ -282,7 +283,7 @@ char* data_export(const mpz_t* mpz_data, size_t* got_count)
 
 	ret = mpz_export(char_data_, got_count, 1, 1, 1, 0, *mpz_data);
 	//std::cout << "got_count = " << got_count << std::endl;
-	printf("got_count = %d\n", *got_count);
+	PRINT_DBG("got_count = %d\n", *got_count);
 	return char_data_;
 	//			char_data = char_data_;
 }
@@ -352,7 +353,7 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 		resultCpaFlatBuffer,
 		*pCyInstHandle);
 	//std::cout << "end of  ModExp" << std::endl;
-	printf("end of ModExp!\n");
+	PRINT_DBG("end of ModExp!\n");
 	return resultCpaFlatBuffer;
 
 
@@ -378,7 +379,7 @@ CpaFlatBuffer* ModInv(char* a, size_t a_size,
 		resultCpaFlatBuffer,
 		*pCyInstHandle);
 	//std::cout << "end of  ModInv" << std::endl;
-	printf("end of ModInv !\n");
+	PRINT_DBG("end of ModInv !\n");
 	return resultCpaFlatBuffer;
 
 
@@ -391,10 +392,10 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
 
  	// struct timeval t_val;
  	// gettimeofday(&t_val, NULL);
- 	// printf("start, now, sec=%ld m_sec=%d \n", t_val.tv_sec, t_val.tv_usec);
+ 	// PRINT_DBG("start, now, sec=%ld m_sec=%d \n", t_val.tv_sec, t_val.tv_usec);
  	// long sec = t_val.tv_sec;
  	// time_t t_sec = (time_t)sec;
- 	// printf("date:%s", ctime(&t_sec));		
+ 	// PRINT_DBG("date:%s", ctime(&t_sec));		
 
  	//export
  	char *power_char_data, *input_char_data, *n_char_data;
@@ -410,10 +411,10 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  	{
  		//struct timeval t_val;
  		//gettimeofday(&t_val, NULL);
- 		//printf("start, now, sec=%ld m_sec=%d \n", t_val.tv_sec, t_val.tv_usec);
+ 		//PRINT_DBG("start, now, sec=%ld m_sec=%d \n", t_val.tv_sec, t_val.tv_usec);
  		//long sec = t_val.tv_sec;
  		//time_t t_sec = (time_t)sec;
- 		//printf("date:%s", ctime(&t_sec));	
+ 		//PRINT_DBG("date:%s", ctime(&t_sec));	
 
  		result_flat_data = ModExp(	input_char_data, input_count,
  			power_char_data, power_count,
@@ -425,7 +426,7 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  		//struct timeval t_result;
  		//timersub(&t_val_end, &t_val, &t_result);
  		//double consume = t_result.tv_sec + (1.0 * t_result.tv_usec)/1000000;
- 		//printf("%d. -------------- end.elapsed time= %fs \n\n", count, consume);
+ 		//PRINT_DBG("%d. -------------- end.elapsed time= %fs \n\n", count, consume);
  		//count++;
 
  		// mpz_t result_mpz_data;
@@ -437,10 +438,10 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  	{
  		//struct timeval t_val;
  		//gettimeofday(&t_val, NULL);
- 		//printf("start, now, sec=%ld m_sec=%d \n", t_val.tv_sec, t_val.tv_usec);
+ 		//PRINT_DBG("start, now, sec=%ld m_sec=%d \n", t_val.tv_sec, t_val.tv_usec);
  		//long sec = t_val.tv_sec;
  		//time_t t_sec = (time_t)sec;
- 		//printf("date:%s", ctime(&t_sec));
+ 		//PRINT_DBG("date:%s", ctime(&t_sec));
 
 
  		modInv_flat_data = ModInv(	input_char_data, input_count,
@@ -457,7 +458,7 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  		//struct timeval t_result;
  		//timersub(&t_val_end, &t_val, &t_result);
  		//double consume = t_result.tv_sec + (1.0 * t_result.tv_usec)/1000000;
- 		//printf("%d. -------------- end.elapsed time (negative need modInv & modExp)= %fs \n\n", count, consume);
+ 		//PRINT_DBG("%d. -------------- end.elapsed time (negative need modInv & modExp)= %fs \n\n", count, consume);
  		//count++;
 
  		data_import((char*)(result_flat_data->pData), result_mpz_data, 	(size_t)(result_flat_data->dataLenInBytes));
@@ -479,14 +480,14 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  	// mpz_set(output.data, result_mpz_data);
 
  	//std::cout<<"end of BigIntegerGmp::PowModN ."<<std::endl;
-	printf("end of PowModN !\n");
+	PRINT_DBG("end of PowModN !\n");
 
  	// struct timeval t_val_end;
  	// gettimeofday(&t_val_end, NULL);
  	// struct timeval t_result;
  	// timersub(&t_val_end, &t_val, &t_result);
  	// double consume = t_result.tv_sec + (1.0 * t_result.tv_usec)/1000000;
- 	// printf("%d. -------------- end.elapsed time= %fs \n\n", count, consume);
+ 	// PRINT_DBG("%d. -------------- end.elapsed time= %fs \n\n", count, consume);
  	// count++;
 
  	//compare
