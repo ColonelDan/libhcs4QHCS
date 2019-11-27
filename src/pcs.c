@@ -50,7 +50,7 @@
 #include "../include/libhcs/pcs_qat_offload.h"
 //extern CpaInstanceHandle CyInstHandle;
 
-#define USING_QAT_OFFLOAD
+//#define USING_QAT_OFFLOAD
 
 pcs_public_key* pcs_init_public_key(void)
 {
@@ -390,7 +390,12 @@ int pcs_import_private_key(pcs_private_key *vk, const char *json)
     mpz_tdiv_q(vk->hp, vk->hp, vk->p);
     mpz_invert(vk->hp, vk->hp, vk->p);
     mpz_sub_ui(vk->hq, vk->q, 1);
-    mpz_powm(vk->hq, vk->hq, vk->hq, vk->q2);
+    //mpz_powm(vk->hq, vk->hq, vk->hq, vk->q2);	error
+	mpz_t g;
+	mpz_init(g);
+	mpz_add_ui(g, vk->n, 1);
+	mpz_powm(vk->hq, g, vk->hq, vk->q2);
+	mpz_clear(g);
     mpz_sub_ui(vk->hq, vk->hq, 1);
     mpz_tdiv_q(vk->hq, vk->hq, vk->q);
     mpz_invert(vk->hq, vk->hq, vk->q);
