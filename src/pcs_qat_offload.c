@@ -35,42 +35,19 @@ CpaStatus QATSetting(CpaInstanceHandle* CyInstHandle)
 char* data_export(const mpz_t* mpz_data, size_t* got_count)
 {
 	void *ret;
-	//			size_t got_count;
 	int char_data_size = (*mpz_data)[0]._mp_size * sizeof(mp_limb_t);
-	//std::cout << "char_data_size = " << char_data_size << std::endl;
 	printf("char_data_size = %d\n", char_data_size);
-	//			char char_data[char_data_size];
-	//			char_data = 0x1111;
-	//			std::cout<<"*************"<<std::endl;
-	//char* char_data_ = new char[abs(char_data_size)];
 	char* char_data_ = (char *)malloc(abs(char_data_size));
 	memset(char_data_, '\0', abs(char_data_size));
 
 	ret = mpz_export(char_data_, got_count, 1, 1, 1, 0, *mpz_data);
-	//std::cout << "got_count = " << got_count << std::endl;
 	printf("got_count = %d\n", *got_count);
 	return char_data_;
-	//			char_data = char_data_;
 }
-//	void data_export(char* char_data_, const mpz_t& mpz_data)
-//	{
-//			void *ret;
-//			size_t got_count;
-//			int char_data_size = mpz_data[0]._mp_size * sizeof(mp_limb_t);
-//			std::cout<<"char_data_size = "<<char_data_size<<std::endl;
-////			char char_data[char_data_size];
-////			char_data = new char[char_data_size];
-//			char char_data[char_data_size];
-//			memset(char_data, '\0', char_data_size);
-//
-//			ret = mpz_export(char_data, &got_count, 1, 1, 1, 0, mpz_data);
-//			std::cout<<"got_count = "<<got_count<<std::endl;
-//	}
 
-	//mpz_import
+//mpz_import
 void data_import(char* char_data, mpz_t* mpz_data, size_t count)
 {
-	//		mpz_t mpz_data;
 	mpz_init(*mpz_data);
 	mpz_import(*mpz_data, count, 1, 1, 1, 0, char_data);
 }
@@ -152,16 +129,6 @@ CpaFlatBuffer* ModInv(char* a, size_t a_size,
 
 
 void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t *n, CpaInstanceHandle *pCyInstHandle) {
-
- 	// mpz_powm(output.data, input.data, power.data, n.data);
-
- 	// struct timeval t_val;
- 	// gettimeofday(&t_val, NULL);
- 	// printf("start, now, sec=%ld m_sec=%d \n", t_val.tv_sec, t_val.tv_usec);
- 	// long sec = t_val.tv_sec;
- 	// time_t t_sec = (time_t)sec;
- 	// printf("date:%s", ctime(&t_sec));		
-
  	//export
  	char *power_char_data, *input_char_data, *n_char_data;
  	size_t power_count, input_count, n_count;
@@ -174,41 +141,17 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  	mpz_t result_mpz_data;
  	if((*power)[0]._mp_size > 0)
  	{
- 		//struct timeval t_val;
- 		//gettimeofday(&t_val, NULL);
- 		//printf("start, now, sec=%ld m_sec=%d \n", t_val.tv_sec, t_val.tv_usec);
- 		//long sec = t_val.tv_sec;
- 		//time_t t_sec = (time_t)sec;
- 		//printf("date:%s", ctime(&t_sec));	
-
  		result_flat_data = ModExp(	input_char_data, input_count,
  			power_char_data, power_count,
  			n_char_data, n_count,
 			pCyInstHandle);
 
- 		//struct timeval t_val_end;
- 		//gettimeofday(&t_val_end, NULL);
- 		//struct timeval t_result;
- 		//timersub(&t_val_end, &t_val, &t_result);
- 		//double consume = t_result.tv_sec + (1.0 * t_result.tv_usec)/1000000;
- 		//printf("%d. -------------- end.elapsed time= %fs \n\n", count, consume);
- 		//count++;
-
- 		// mpz_t result_mpz_data;
  		data_import((char*)(result_flat_data->pData), result_mpz_data, 	(size_t)(result_flat_data->dataLenInBytes));
 
  		mpz_set(output, result_mpz_data);
  	}
  	else if((*power)[0]._mp_size < 0)
  	{
- 		//struct timeval t_val;
- 		//gettimeofday(&t_val, NULL);
- 		//printf("start, now, sec=%ld m_sec=%d \n", t_val.tv_sec, t_val.tv_usec);
- 		//long sec = t_val.tv_sec;
- 		//time_t t_sec = (time_t)sec;
- 		//printf("date:%s", ctime(&t_sec));
-
-
  		modInv_flat_data = ModInv(	input_char_data, input_count,
  									n_char_data, n_count,
 									pCyInstHandle);
@@ -218,14 +161,6 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  			n_char_data, n_count,
 			pCyInstHandle);
 
- 		//struct timeval t_val_end;
- 		//gettimeofday(&t_val_end, NULL);
- 		//struct timeval t_result;
- 		//timersub(&t_val_end, &t_val, &t_result);
- 		//double consume = t_result.tv_sec + (1.0 * t_result.tv_usec)/1000000;
- 		//printf("%d. -------------- end.elapsed time (negative need modInv & modExp)= %fs \n\n", count, consume);
- 		//count++;
-
  		data_import((char*)(result_flat_data->pData), result_mpz_data, 	(size_t)(result_flat_data->dataLenInBytes));
 
  		mpz_set(output, result_mpz_data);
@@ -234,49 +169,5 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  	{
  		mpz_set_ui(output, 1);
  	}
-
-
- 	//import
- 	// mpz_t power_mpz_data, result_mpz_data;
- 	// data_import(power_char_data, power_mpz_data, power_count);
- 	// data_import((char*)(result_flat_data->pData), result_mpz_data, 	size_t(result_flat_data->dataLenInBytes));
-
- 	// // output.data = &result_mpz_data;
- 	// mpz_set(output.data, result_mpz_data);
-
- 	//std::cout<<"end of BigIntegerGmp::PowModN ."<<std::endl;
 	printf("end of PowModN !\n");
-
- 	// struct timeval t_val_end;
- 	// gettimeofday(&t_val_end, NULL);
- 	// struct timeval t_result;
- 	// timersub(&t_val_end, &t_val, &t_result);
- 	// double consume = t_result.tv_sec + (1.0 * t_result.tv_usec)/1000000;
- 	// printf("%d. -------------- end.elapsed time= %fs \n\n", count, consume);
- 	// count++;
-
- 	//compare
-// //		int cmp_ret = mpz_cmp(power_mpz_data, power.data);
-// 		int cmp_ret = mpz_cmp(result_mpz_data, output.data);
-// 		std::cout<<"cmp_ret = "<<cmp_ret<<std::endl;
-
-
-
-//		void *ret;
-//		size_t got_count;
-//		int char_data_size = power.data[0]._mp_size * sizeof(mp_limb_t);
-//		std::cout<<"char_data_size = "<<char_data_size<<std::endl;
-//		char char_data[char_data_size];
-//		memset(char_data, '\0', char_data_size);
-//
-//		ret = mpz_export(char_data, &got_count, 1, 1, 1, 0, power.data);
-//		std::cout<<"got_count = "<<got_count<<std::endl;
-//
-////		SeComLib::Core::BigInteger  mpz_data;
-//		mpz_t mpz_data;
-//		mpz_init(mpz_data);
-//		mpz_import(mpz_data, got_count, 1, 1, 1, 0, char_data);
-//		int cmp_ret = mpz_cmp(mpz_data, power.data);
-//		std::cout<<"cmp_ret = "<<cmp_ret<<std::endl;
-
 }
