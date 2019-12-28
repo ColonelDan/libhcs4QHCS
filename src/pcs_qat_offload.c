@@ -288,6 +288,17 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 		resultCpaFlatBuffer,
 		*pCyInstHandle);
 	//std::cout << "end of  ModExp" << std::endl;
+
+    //free mem
+	PHYS_CONTIG_FREE(aCpaFlatBuffer->pData);
+	PHYS_CONTIG_FREE(bCpaFlatBuffer->pData);
+	PHYS_CONTIG_FREE(mCpaFlatBuffer->pData);
+	//PHYS_CONTIG_FREE(resultCpaFlatBuffer->pData);
+	OS_FREE(aCpaFlatBuffer);
+	OS_FREE(bCpaFlatBuffer);
+	OS_FREE(mCpaFlatBuffer);
+	//OS_FREE(resultCpaFlatBuffer);
+
 	PRINT_DBG("end of ModExp!\n");
 	return resultCpaFlatBuffer;
 
@@ -368,6 +379,10 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  		data_import((char*)(result_flat_data->pData), result_mpz_data, 	(size_t)(result_flat_data->dataLenInBytes));
 
  		mpz_set(output, result_mpz_data);
+
+        //free mem
+		PHYS_CONTIG_FREE(result_flat_data->pData);
+		OS_FREE(result_flat_data);
  	}
  	else if((*power)[0]._mp_size < 0)
  	{
@@ -405,6 +420,10 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  		mpz_set_ui(output, 1);
  	}
 
+    //free mem
+    free(power_char_data);
+    free(input_char_data);
+    free(n_char_data);
 
  	//import
  	// mpz_t power_mpz_data, result_mpz_data;
