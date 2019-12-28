@@ -8,6 +8,114 @@ void test()
 	PRINT_DBG("test !\n");
 }
 
+/**
+ *****************************************************************************
+ * @ingroup fipsSampleCodeUtils
+ *      doModExpWithInterval
+ *
+ * @description
+ *      Do a Modular Exponentiation operaton
+ *      target = (base ^ exponent) mod (modulus);
+ *
+ * @param[in]  pBase             base value
+ * @param[in]  pExponent         exponent value, if this value is NULL, an
+ *                               exponent of 1 is used.
+ * @param[in]  pModulus          modulus value
+ * @param[in]  instanceHandle    QA instance handle
+ *
+ * @param[out] pTarget           result value
+ *
+ * @retval CPA_STATUS_SUCCESS
+ *         CPA_STATUS_FAIL
+ *
+ * @pre
+ *     none
+ * @post
+ *     none
+ *****************************************************************************/
+CpaStatus doModExpWithInterval(const CpaFlatBuffer* restrict pBase,
+    const CpaFlatBuffer* restrict pExponent,
+    const CpaFlatBuffer* restrict pModulus,
+    CpaFlatBuffer* pTarget,
+    const CpaInstanceHandle instanceHandle)
+{
+
+    CpaStatus status = CPA_STATUS_SUCCESS;
+    Cpa32U maxCyRetries = 0;
+    Cpa8S statusErrorString[CPA_STATUS_MAX_STR_LENGTH_IN_BYTES] = {
+        0,
+    };
+    CpaCyLnModExpOpData modExpOpData = {
+        .modulus = {.dataLenInBytes = pModulus->dataLenInBytes,
+                    .pData = pModulus->pData},
+        .base = {.dataLenInBytes = pBase->dataLenInBytes,
+                 .pData = pBase->pData},
+        .exponent = {.dataLenInBytes = 0, .pData = NULL} };
+
+    /*if exponent is NULL, set value to 1*/
+    if (NULL == pExponent)
+    {
+        modExpOpData.exponent.pData = osZalloc(1, instanceHandle);
+        if (NULL == modExpOpData.exponent.pData)
+        {
+            PRINT_ERR("internal exponent alloc fail \n");
+            status = CPA_STATUS_FAIL;
+            goto finish;
+        }
+        *modExpOpData.exponent.pData = 1;
+        modExpOpData.exponent.dataLenInBytes = 1;
+    }
+    else
+    {
+        modExpOpData.exponent.pData = pExponent->pData;
+        modExpOpData.exponent.dataLenInBytes = pExponent->dataLenInBytes;
+    }
+
+    do
+    {
+        status = cpaCyLnModExp(instanceHandle,
+            NULL, /*callback function*/
+            NULL, /*callback tag*/
+            &modExpOpData,
+            pTarget);
+        if ((CPA_STATUS_RETRY != status) && (CPA_STATUS_SUCCESS != status))
+        {
+            if (CPA_STATUS_SUCCESS !=
+                cpaCyGetStatusText(instanceHandle, status, statusErrorString))
+            {
+                PRINT_ERR("Error retrieving status string.\n");
+            }
+            PRINT_ERR("doModExpWithInterval Fail -- %s\n", statusErrorString);
+            status = CPA_STATUS_FAIL;
+            goto finish;
+        }
+        if (CPA_STATUS_SUCCESS == status)
+        {
+            break;
+        }
+        maxCyRetries++;
+
+        // interval
+        OS_SLEEP(10);
+		icp_sal_CyPollInstance(instanceHandle, 0);
+    } while ((CPA_STATUS_RETRY == status) &&
+        FIPS_MAX_CY_RETRIES != maxCyRetries);  //FIPS_MAX_CY_RETRIES (100)
+
+/*Sets fail if maxCyRetries == FIPS_MAX_CY_RETRIES*/
+    CHECK_MAX_RETRIES(maxCyRetries, status);
+
+finish:
+    if (NULL == pExponent)
+    {
+        osFree(&modExpOpData.exponent.pData);
+    }
+    if (CPA_STATUS_SUCCESS != status)
+    {
+        return CPA_STATUS_FAIL;
+    }
+    return CPA_STATUS_SUCCESS;
+}
+
 CpaStatus getCryptoInstance(Cpa16U* numInst_g, CpaInstanceHandle* inst_g)
 {
 
@@ -173,7 +281,7 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 	mCpaFlatBuffer = WarpData(m, m_size, 0);
 	resultCpaFlatBuffer = WarpData(NULL, m_size, 1);
 
-	status = doModExp(
+	status = doModExpWithInterval(
 		aCpaFlatBuffer,
 		bCpaFlatBuffer,
 		mCpaFlatBuffer,
