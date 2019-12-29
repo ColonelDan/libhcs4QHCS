@@ -196,8 +196,9 @@ CpaStatus QATSetting(Cpa16U* numInst_g, CpaInstanceHandle* CyInstHandle)
 	}
 
 	//stat = fipsSampleGetQaInstance(CyInstHandle);
-	sampleCyStartPolling(*CyInstHandle);
+	//sampleCyStartPolling(*CyInstHandle);
 	stat = getCryptoInstance(numInst_g, CyInstHandle);
+	sampleCyStartPolling(*CyInstHandle);
 	return stat;
 }
 
