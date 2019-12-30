@@ -1,5 +1,5 @@
 //include QAT headers
-#define DEBUG
+//#define DEBUG
 #include "../include/libhcs/pcs_qat_offload.h"
 
 #include <openssl/async.h>
