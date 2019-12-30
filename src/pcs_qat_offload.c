@@ -28,11 +28,26 @@ static void sal_pollingMultiInst(void* argVoid)
         {
 			icp_sal_CyPollInstance(arg->pCyInstHandle[i], 0);
         }
-        OS_SLEEP(10);
+        OS_SLEEP(10);   //10
     }
     free(arg);
     sampleThreadExit();
 }
+//static void sal_pollingMultiInst(void* argVoid)
+//{
+//	struct pollingParam* arg = (struct pollingParam*)argVoid;
+//	gPollingCyMultiInst = 1;
+//	while (gPollingCyMultiInst)
+//	{
+//		/*for (int i = 0; i < arg->numInst; i++)
+//		{*/
+//			icp_sal_CyPollInstance(*(arg->pCyInstHandle), 0);
+//		//}
+//		OS_SLEEP(10);
+//	}
+//	free(arg);
+//	sampleThreadExit();
+//}
 /*
  * This function checks the instance info. If the instance is
  * required to be polled then it starts a polling thread.
@@ -248,6 +263,7 @@ CpaStatus QATSetting(Cpa16U* numInst_g, CpaInstanceHandle* CyInstHandle)
 	//sampleCyStartPolling(*CyInstHandle);
 	stat = getCryptoInstance(numInst_g, CyInstHandle);
 	sampleCyStartPollingMultiInst(CyInstHandle, *numInst_g);
+	//sampleCyStartPolling(*CyInstHandle);
 	return stat;
 }
 
@@ -332,6 +348,7 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 	resultCpaFlatBuffer = WarpData(NULL, m_size, 1);
 
 	status = doModExpWithInterval(
+	//status = doModExp(
 		aCpaFlatBuffer,
 		bCpaFlatBuffer,
 		mCpaFlatBuffer,
