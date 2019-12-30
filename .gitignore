@@ -15,3 +15,6 @@ cmake_install.cmake
 CTestTestfile.cmake
 install_manifest.txt
 !bench/Makefile
+
+.vs/
+out/
