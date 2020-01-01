@@ -160,8 +160,10 @@ CpaStatus doModExpWithInterval(const CpaFlatBuffer* restrict pBase,
         maxCyRetries++;
 
         // interval
-        OS_SLEEP(10);
-		icp_sal_CyPollInstance(instanceHandle, 0);
+        if (icp_sal_CyPollInstance(instanceHandle, 0) == CPA_STATUS_RETRY)
+        {
+            OS_SLEEP(10);
+        }
     } while ((CPA_STATUS_RETRY == status) &&
         FIPS_MAX_CY_RETRIES != maxCyRetries);  //FIPS_MAX_CY_RETRIES (100)
 
