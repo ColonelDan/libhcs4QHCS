@@ -266,7 +266,9 @@ CpaStatus getCryptoInstance(Cpa16U* numInst_g, CpaInstanceHandle* inst_g)
 			return CPA_STATUS_FAIL;
 		}
 		/*get the instances handles and place in allocated memory*/
-		status = cpaCyGetInstances(*numInst_g, inst_g);
+		int numInst_cp = *numInst_g;
+		status = cpaCyGetInstances(numInst_cp, inst_g);
+		*numInst_g = numInst_cp;
 		if (CPA_STATUS_SUCCESS != status)
 		{
 			PRINT_ERR("cpaCyGetInstances failed with status: %d\n", status);
