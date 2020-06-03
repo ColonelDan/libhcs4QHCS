@@ -5,7 +5,7 @@
 #include <openssl/async.h>
 #include <openssl/crypto.h>
 
-
+//异步API需要回调函数
 static void asymCallback(void *pCallbackTag,
 	CpaStatus status,
 	void *pOpData,
@@ -22,6 +22,8 @@ static void asymCallback(void *pCallbackTag,
 
 	ASYNC_JOB *job = (ASYNC_JOB *)pCallbackTag;
 	int ret;
+
+	//根据协程句柄重入协程
 	ASYNC_start_job(&job, NULL, &ret, NULL, NULL, NULL);
 }
 /**
@@ -87,13 +89,14 @@ CpaStatus doModExpAsync(const CpaFlatBuffer *restrict pBase,
 		modExpOpData.exponent.dataLenInBytes = pExponent->dataLenInBytes;
 	}
 
+	//得到当前协程句柄
 	ASYNC_JOB *currjob = ASYNC_get_current_job();
 
 	do
 	{
 		status = cpaCyLnModExp(instanceHandle,
 			asymCallback, /*callback function*/
-			currjob, /*callback tag*/
+			currjob, /*callback tag*/	//回调函数根据协程句柄可以重入协程
 			&modExpOpData,
 			pTarget);
 		//if (status == CPA_STATUS_RETRY)
@@ -123,6 +126,8 @@ CpaStatus doModExpAsync(const CpaFlatBuffer *restrict pBase,
 
 	/*Sets fail if maxCyRetries == FIPS_MAX_CY_RETRIES*/
 	CHECK_MAX_RETRIES(maxCyRetries, status);
+
+	//提交成功，暂停协程
 	ASYNC_pause_job();
 
 finish:
@@ -159,6 +164,7 @@ finish:
  * @post
  *     none
  *****************************************************************************/
+//NOTE:doModInvAsync部分没有经过测试，开发不完全！可根据doModExpAsync进行完善。
 CpaStatus doModInvAsync(const CpaFlatBuffer *restrict pBase,
 	const CpaFlatBuffer *restrict pModulus,
 	CpaFlatBuffer *pTarget,
@@ -218,6 +224,8 @@ void test()
 {
 	PRINT_DBG("test !\n");
 }
+
+//获取所有instance句柄放在inst_g，instance数量为numInst_g
 CpaStatus getCryptoInstance(Cpa16U* numInst_g, CpaInstanceHandle* inst_g)
 {
 
@@ -278,6 +286,8 @@ CpaStatus getCryptoInstance(Cpa16U* numInst_g, CpaInstanceHandle* inst_g)
 	// numInst_g--;
 	return status;
 }
+
+//启用QAT
 CpaStatus QATSetting(Cpa16U* numInst_g, CpaInstanceHandle* CyInstHandle)
 {
 	CpaStatus stat = CPA_STATUS_SUCCESS;
@@ -324,6 +334,7 @@ void data_import(char* char_data, mpz_t* mpz_data, size_t count)
 	mpz_import(*mpz_data, count, 1, 1, 1, 0, char_data);
 }
 
+//根据二进制a及二进制长度a_size封装得到QAT接口格式aCpaFlatBuffer
 CpaFlatBuffer* WarpData(char* a, size_t a_size, int empty)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
@@ -343,6 +354,7 @@ CpaFlatBuffer* WarpData(char* a, size_t a_size, int empty)
 	return aCpaFlatBuffer;
 }
 
+//模幂（模幂中间层函数）
 CpaFlatBuffer* ModExp(char* a, size_t a_size,
 	char* b, size_t b_size,
 	char* m, size_t m_size,
@@ -350,7 +362,7 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
-
+	//封装得到CpaFlatBuffer格式数据
 	CpaFlatBuffer* aCpaFlatBuffer = NULL;
 	CpaFlatBuffer* bCpaFlatBuffer = NULL;
 	CpaFlatBuffer* mCpaFlatBuffer = NULL;
@@ -360,6 +372,7 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 	mCpaFlatBuffer = WarpData(m, m_size, 0);
 	resultCpaFlatBuffer = WarpData(NULL, m_size, 1);
 
+	//模幂底层函数
 	status = doModExpAsync(
 		aCpaFlatBuffer,
 		bCpaFlatBuffer,
@@ -383,13 +396,14 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 
 }
 
+//模反（模幂中间层函数）
 CpaFlatBuffer* ModInv(char* a, size_t a_size,
 	char* m, size_t m_size,
 	CpaInstanceHandle *pCyInstHandle)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
-
+	//封装得到CpaFlatBuffer格式数据
 	CpaFlatBuffer* aCpaFlatBuffer = NULL;
 	CpaFlatBuffer* mCpaFlatBuffer = NULL;
 	CpaFlatBuffer* resultCpaFlatBuffer = NULL;
@@ -397,6 +411,7 @@ CpaFlatBuffer* ModInv(char* a, size_t a_size,
 	mCpaFlatBuffer = WarpData(m, m_size, 0);
 	resultCpaFlatBuffer = WarpData(NULL, m_size, 1);
 
+	//模反底层函数
 	status = doModInvAsync(
 		aCpaFlatBuffer,
 		mCpaFlatBuffer,
@@ -408,25 +423,27 @@ CpaFlatBuffer* ModInv(char* a, size_t a_size,
 
 }
 
-
+//模幂顶层函数
 void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t *n, CpaInstanceHandle *pCyInstHandle) {
  	//export
- 	char *power_char_data, *input_char_data, *n_char_data;
- 	size_t power_count, input_count, n_count;
- 	power_char_data = data_export(power, &power_count);
+ 	char *power_char_data, *input_char_data, *n_char_data;	//二进制数据
+ 	size_t power_count, input_count, n_count;	//二进制长度
+ 	power_char_data = data_export(power, &power_count);	//参数转为二进制数据，适应QAT接口
  	input_char_data = data_export(input, &input_count);
  	n_char_data = data_export(n, &n_count);
 
- 	CpaFlatBuffer *result_flat_data;
- 	CpaFlatBuffer *modInv_flat_data;
- 	mpz_t result_mpz_data;
- 	if((*power)[0]._mp_size > 0)
+ 	CpaFlatBuffer *result_flat_data;	//模幂结果
+ 	CpaFlatBuffer *modInv_flat_data;	//模反结果（指数为负数时的中间结果）
+ 	mpz_t result_mpz_data;	//模幂结果
+ 	if((*power)[0]._mp_size > 0)	//指数为正
  	{
+		//模幂
  		result_flat_data = ModExp(	input_char_data, input_count,
  			power_char_data, power_count,
  			n_char_data, n_count,
 			pCyInstHandle);
 
+		//QAT格式转为mpz_t
  		data_import((char*)(result_flat_data->pData), result_mpz_data, 	(size_t)(result_flat_data->dataLenInBytes));
 
  		mpz_set(output, result_mpz_data);
@@ -435,22 +452,27 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
 		PHYS_CONTIG_FREE(result_flat_data->pData);
 		OS_FREE(result_flat_data);
  	}
- 	else if((*power)[0]._mp_size < 0)
+ 	else if((*power)[0]._mp_size < 0)	//指数为负，需要预处理，见“https://zh.wikipedia.org/wiki/%E6%A8%A1%E5%B9%82”
  	{
+		//对底数取模反
+		//实现用QAT接口 or GMP接口 ?
+		//Note:模反对象是底数，只与密钥相关，应该放在预处理中，只需要进行一次
  		modInv_flat_data = ModInv(	input_char_data, input_count,
  									n_char_data, n_count,
 									pCyInstHandle);
 
+		//模幂
  		result_flat_data = ModExp(	(char*)(modInv_flat_data->pData), modInv_flat_data->dataLenInBytes,
  			power_char_data, power_count,
  			n_char_data, n_count,
 			pCyInstHandle);
 
+		//QAT格式转为mpz_t
  		data_import((char*)(result_flat_data->pData), result_mpz_data, 	(size_t)(result_flat_data->dataLenInBytes));
 
  		mpz_set(output, result_mpz_data);
  	}
- 	else
+ 	else   //指数为0
  	{
  		mpz_set_ui(output, 1);
  	}

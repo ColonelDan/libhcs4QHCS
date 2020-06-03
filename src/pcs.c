@@ -53,7 +53,7 @@
 #include <openssl/async.h>
 #include <openssl/crypto.h>
 
-#define USING_QAT_OFFLOAD
+#define USING_QAT_OFFLOAD   //启用QAT处理模幂运算
 
 pcs_public_key* pcs_init_public_key(void)
 {
@@ -157,7 +157,7 @@ void pcs_encrypt_r(pcs_public_key *pk, mpz_t rop, mpz_t plain1, mpz_t r)
     mpz_clear(t1);
 }
 
-#ifndef USING_QAT_OFFLOAD
+#ifndef USING_QAT_OFFLOAD   //不启用QAT
 void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1, CpaInstanceHandle* pCyInstHandle)
 {
 	mpz_t t1;
@@ -181,8 +181,9 @@ void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1, Cp
 
 	mpz_clear(t1);
 }
-#else
+#else   //启用QAT
 
+//模幂参数结构体
 struct elem_PowModN {
 	int i;
 	mpz_t* rop;
@@ -192,38 +193,36 @@ struct elem_PowModN {
 	CpaInstanceHandle* pCyInstHandle;
 	int j;
 };
+
+//新协程处理逻辑
 AsyncPowModN(struct elem_PowModN* pArg)
 {
 	PowModN(*(pArg->rop), *(pArg->r), *(pArg->n), *(pArg->n2), pArg->pCyInstHandle);
 }
+
+//QAT处理模幂运算
 void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1, CpaInstanceHandle* pCyInstHandle)
 {
 	mpz_t t1;
 	mpz_init(t1);
 
-//#pragma omp parallel sections
-//	{
-//#pragma omp section
-//		{
-			mpz_random_in_mult_group(t1, hr->rstate, pk->n);
-			//mpz_powm(t1, t1, pk->n, pk->n2);
-			//PowModN(t1, t1, pk->n, pk->n2, pCyInstHandle);
+    //随机数生成
+	mpz_random_in_mult_group(t1, hr->rstate, pk->n);
 
-			ASYNC_JOB* job = NULL;
-			ASYNC_WAIT_CTX* ctx = NULL;
-			int ret;
-			struct elem_PowModN arg = {2, &t1, &t1, &(pk->n), &(pk->n2), pCyInstHandle,2 };
-			struct elem_PowModN* pArg = &arg;
-			ASYNC_start_job(&job, ctx, &ret, AsyncPowModN, pArg, sizeof(struct elem_PowModN));
-//		}
-//#pragma omp section
-//		{
-			//mpz_powm(rop, pk->g, plain1, pk->n2);
-			PowModN(rop, pk->g, plain1, pk->n2, pCyInstHandle);
+    //新协程参数
+	ASYNC_JOB* job = NULL;
+	ASYNC_WAIT_CTX* ctx = NULL;
+	int ret;
+	struct elem_PowModN arg = {2, &t1, &t1, &(pk->n), &(pk->n2), pCyInstHandle,2 };
+	struct elem_PowModN* pArg = &arg;
 
-	//	}
-	//}
+    //另起新协程提交第一次模幂运算
+	ASYNC_start_job(&job, ctx, &ret, AsyncPowModN, pArg, sizeof(struct elem_PowModN));
 
+    //处理第二次模幂
+	PowModN(rop, pk->g, plain1, pk->n2, pCyInstHandle);
+  
+    //模乘两次模幂结果得到Paillier加密结果
 	mpz_mul(rop, rop, t1);
 	mpz_mod(rop, rop, pk->n2);
 
