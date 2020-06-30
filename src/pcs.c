@@ -185,13 +185,11 @@ void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1, Cp
 
 //模幂参数结构体
 struct elem_PowModN {
-	int i;
 	mpz_t* rop;
 	mpz_t* r;
 	mpz_t* n;
 	mpz_t* n2;
 	CpaInstanceHandle* pCyInstHandle;
-	int j;
 };
 
 //新协程处理逻辑
@@ -213,7 +211,7 @@ void pcs_encrypt(pcs_public_key *pk, hcs_random *hr, mpz_t rop, mpz_t plain1, Cp
 	ASYNC_JOB* job = NULL;
 	ASYNC_WAIT_CTX* ctx = NULL;
 	int ret;
-	struct elem_PowModN arg = {2, &t1, &t1, &(pk->n), &(pk->n2), pCyInstHandle,2 };
+	struct elem_PowModN arg = {&t1, &t1, &(pk->n), &(pk->n2), pCyInstHandle};
 	struct elem_PowModN* pArg = &arg;
 
     //另起新协程提交第一次模幂运算

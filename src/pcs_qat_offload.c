@@ -1,9 +1,9 @@
 //include QAT headers
-//#define DEBUG
 #include "../include/libhcs/pcs_qat_offload.h"
-
 #include <openssl/async.h>
 #include <openssl/crypto.h>
+
+//#define DEBUG
 
 //异步API需要回调函数
 static void asymCallback(void *pCallbackTag,
@@ -26,7 +26,8 @@ static void asymCallback(void *pCallbackTag,
 	//根据协程句柄重入协程
 	ASYNC_start_job(&job, NULL, &ret, NULL, NULL, NULL);
 }
-/**
+
+/** 改自fipsSampleCodeUtils
  *****************************************************************************
  * @ingroup fipsSampleCodeUtils
  *      doModExp
@@ -142,88 +143,7 @@ finish:
 	return CPA_STATUS_SUCCESS;
 }
 
-/**
- *****************************************************************************
- * @ingroup fipsSampleCodeUtils
- *      doModInv
- *
- * @description
- *      Get the inverse modulus of a number:
- *      target = (base ^ -1) mod (modulus);
- *
- * @param[in]  pBase             base value
- * @param[in]  pModulus          modulus value
- * @param[out] pTarget           Result is stored here
- * @param[in]  instanceHandle    QA instance handle
- *
- * @retval CPA_STATUS_SUCCESS
- *         CPA_STATUS_FAIL
- *
- * @pre
- *     none
- * @post
- *     none
- *****************************************************************************/
-//NOTE:doModInvAsync部分没有经过测试，开发不完全！可根据doModExpAsync进行完善。
-CpaStatus doModInvAsync(const CpaFlatBuffer *restrict pBase,
-	const CpaFlatBuffer *restrict pModulus,
-	CpaFlatBuffer *pTarget,
-	const CpaInstanceHandle instanceHandle)
-{
-
-	CpaStatus status = CPA_STATUS_SUCCESS;
-	Cpa32U maxCyRetries = 0;
-	Cpa8S statusErrorString[CPA_STATUS_MAX_STR_LENGTH_IN_BYTES] = {
-		0,
-	};
-	CpaCyLnModInvOpData modInvOpData = {
-		.A = {.dataLenInBytes = pBase->dataLenInBytes,.pData = pBase->pData},
-		.B = {.dataLenInBytes = pModulus->dataLenInBytes,
-			  .pData = pModulus->pData} };
-
-	ASYNC_JOB *currjob = ASYNC_get_current_job();
-
-	do
-	{
-		status = cpaCyLnModInv(instanceHandle,
-			asymCallback, /*callback function*/
-			currjob, /*callback tag*/
-			&modInvOpData,
-			pTarget);
-		if ((CPA_STATUS_RETRY != status) && (CPA_STATUS_SUCCESS != status))
-		{
-			if (CPA_STATUS_SUCCESS !=
-				cpaCyGetStatusText(instanceHandle, status, statusErrorString))
-			{
-				PRINT_ERR("Error retrieving status string.\n");
-			}
-			PRINT_ERR("Mod Inv Fail -- %s\n", statusErrorString);
-			status = CPA_STATUS_FAIL;
-			break;
-		}
-		if (CPA_STATUS_SUCCESS == status)
-		{
-			break;
-		}
-		maxCyRetries++;
-	} while ((CPA_STATUS_RETRY == status) &&
-		FIPS_MAX_CY_RETRIES != maxCyRetries);
-
-	/*Sets fail if maxCyRetries == FIPS_MAX_CY_RETRIES*/
-	CHECK_MAX_RETRIES(maxCyRetries, status);
-	ASYNC_pause_job();
-
-	if (CPA_STATUS_SUCCESS != status)
-	{
-		return CPA_STATUS_FAIL;
-	}
-	return CPA_STATUS_SUCCESS;
-}
-
-void test()
-{
-	PRINT_DBG("test !\n");
-}
+/******************************** START OF 应用引入QAT的基本处理 ***************************************/
 
 //获取所有instance句柄放在inst_g，instance数量为numInst_g
 CpaStatus getCryptoInstance(Cpa16U* numInst_g, CpaInstanceHandle* inst_g)
@@ -245,16 +165,6 @@ CpaStatus getCryptoInstance(Cpa16U* numInst_g, CpaInstanceHandle* inst_g)
 	PRINT_DBG("numInst_g = %hd\n", *numInst_g);
 	if (*numInst_g > 0)
 	{
-		/*allocate memory to store the instance handles*/
-		//*inst_g = qaeMemAlloc(sizeof(CpaInstanceHandle) * (*numInst_g));
-
-		//inst_g = malloc(sizeof(CpaInstanceHandle) * (*numInst_g));
-		//CpaInstanceHandle* test = NULL;
-		////test = malloc(sizeof(CpaInstanceHandle) * (*numInst_g));
-		//test = (CpaInstanceHandle*)malloc(sizeof(CpaInstanceHandle) * (*numInst_g));
-		//inst_g = test;
-
-
 		if (inst_g == NULL)
 		{
 			PRINT_ERR("Failed to allocate memory for instances\n");
@@ -313,6 +223,10 @@ CpaStatus QATSetting(Cpa16U* numInst_g, CpaInstanceHandle* CyInstHandle)
 	return stat;
 }
 
+/******************************** END OF 应用引入QAT的基本处理 ***************************************/
+
+/******************************** START OF 数据包装&转换 ***************************************/
+
 //mpz_export
 char* data_export(const mpz_t* mpz_data, size_t* got_count)
 {
@@ -353,6 +267,8 @@ CpaFlatBuffer* WarpData(char* a, size_t a_size, int empty)
 	}
 	return aCpaFlatBuffer;
 }
+
+/******************************** END OF 数据包装&转换 ***************************************/
 
 //模幂（模幂中间层函数）
 CpaFlatBuffer* ModExp(char* a, size_t a_size,
@@ -396,33 +312,6 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 
 }
 
-//模反（模幂中间层函数）
-CpaFlatBuffer* ModInv(char* a, size_t a_size,
-	char* m, size_t m_size,
-	CpaInstanceHandle *pCyInstHandle)
-{
-	CpaStatus status = CPA_STATUS_SUCCESS;
-
-	//封装得到CpaFlatBuffer格式数据
-	CpaFlatBuffer* aCpaFlatBuffer = NULL;
-	CpaFlatBuffer* mCpaFlatBuffer = NULL;
-	CpaFlatBuffer* resultCpaFlatBuffer = NULL;
-	aCpaFlatBuffer = WarpData(a, a_size, 0);
-	mCpaFlatBuffer = WarpData(m, m_size, 0);
-	resultCpaFlatBuffer = WarpData(NULL, m_size, 1);
-
-	//模反底层函数
-	status = doModInvAsync(
-		aCpaFlatBuffer,
-		mCpaFlatBuffer,
-		resultCpaFlatBuffer,
-		*pCyInstHandle);
-	PRINT_DBG("end of ModInv !\n");
-	return resultCpaFlatBuffer;
-
-
-}
-
 //模幂顶层函数
 void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t *n, CpaInstanceHandle *pCyInstHandle) {
  	//export
@@ -435,6 +324,8 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  	CpaFlatBuffer *result_flat_data;	//模幂结果
  	CpaFlatBuffer *modInv_flat_data;	//模反结果（指数为负数时的中间结果）
  	mpz_t result_mpz_data;	//模幂结果
+
+	// 不同指数需要进行不同处理
  	if((*power)[0]._mp_size > 0)	//指数为正
  	{
 		//模幂
@@ -457,20 +348,7 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
 		//对底数取模反
 		//实现用QAT接口 or GMP接口 ?
 		//Note:模反对象是底数，只与密钥相关，应该放在预处理中，只需要进行一次
- 		modInv_flat_data = ModInv(	input_char_data, input_count,
- 									n_char_data, n_count,
-									pCyInstHandle);
-
-		//模幂
- 		result_flat_data = ModExp(	(char*)(modInv_flat_data->pData), modInv_flat_data->dataLenInBytes,
- 			power_char_data, power_count,
- 			n_char_data, n_count,
-			pCyInstHandle);
-
-		//QAT格式转为mpz_t
- 		data_import((char*)(result_flat_data->pData), result_mpz_data, 	(size_t)(result_flat_data->dataLenInBytes));
-
- 		mpz_set(output, result_mpz_data);
+		//TODO
  	}
  	else   //指数为0
  	{
