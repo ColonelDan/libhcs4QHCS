@@ -312,6 +312,34 @@ CpaFlatBuffer* ModExp(char* a, size_t a_size,
 
 }
 
+/******************************** START OF 底数模反 ***************************************/
+
+mpz_t g;
+char* gInv_char_data = NULL;
+size_t gInv_count = 0;
+
+// 取模反
+void getInv(mpz_t* input, mpz_t* n)
+{
+	// 初始化g
+	if(gInv_count == 0)
+		mpz_init(g);
+
+	if (mpz_cmp(g, *input) != 0)	//g != *input
+	{
+		mpz_set(g, *input);
+		mpz_t g_inv;
+		mpz_init(g_inv);
+		mpz_invert(g_inv, *input, *n);
+		// 将g_inv的二进制版本保存起来带后续使用，而不需要重复计算
+		gInv_char_data = data_export(g_inv, &gInv_count);
+	}
+	else
+		return;
+}
+
+/******************************** END OF 底数模反 ***************************************/
+
 //模幂顶层函数
 void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t *n, CpaInstanceHandle *pCyInstHandle) {
  	//export
@@ -346,9 +374,23 @@ void PowModN (mpz_t *output, const mpz_t *input, const mpz_t *power, const mpz_t
  	else if((*power)[0]._mp_size < 0)	//指数为负，需要预处理，见“https://zh.wikipedia.org/wiki/%E6%A8%A1%E5%B9%82”
  	{
 		//对底数取模反
-		//实现用QAT接口 or GMP接口 ?
+		//实现用QAT接口 or GMP接口? 用GMP接口！
 		//Note:模反对象是底数，只与密钥相关，应该放在预处理中，只需要进行一次
-		//TODO
+		getInv(input, n);
+		//模幂
+		result_flat_data = ModExp(gInv_char_data, gInv_count,
+			power_char_data, power_count,
+			n_char_data, n_count,
+			pCyInstHandle);
+
+		//QAT格式转为mpz_t
+		data_import((char*)(result_flat_data->pData), result_mpz_data, (size_t)(result_flat_data->dataLenInBytes));
+
+		mpz_set(output, result_mpz_data);
+
+		//free mem
+		PHYS_CONTIG_FREE(result_flat_data->pData);
+		OS_FREE(result_flat_data);
  	}
  	else   //指数为0
  	{
