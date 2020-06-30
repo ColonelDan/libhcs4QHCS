@@ -65,3 +65,9 @@ foreach(f ${test_srcs})
     add_test(${test_prog} "${BINARY_DIR}/${test_prog}")
 endforeach()
 # EN: Test commands
+
+# BEGIN: Build QHCS_bench
+file(GLOB QHCS_srcs "QHCS_bench/*.cpp")
+add_executable(QHCS_bench ${QHCS_srcs})
+target_link_libraries(QHCS_bench hcs ${GMP_LIBRARIES} qat_s)
+# END: Build QHCS_bench
