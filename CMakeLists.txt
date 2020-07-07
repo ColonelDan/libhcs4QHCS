@@ -1,16 +1,16 @@
 cmake_minimum_required(VERSION 2.8)
 project(libhcs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/.cmake")
+set(ICP_ROOT "/root/QAT")   #different for your machine 
 
-include_directories(/root/QAT/quickassist/include /root/QAT/quickassist/include/lac /root/QAT/quickassist/include/dc /root/QAT/quickassist/lookaside/access_layer/include /root/QAT/quickassist/lookaside/access_layer/src/sample_code/functional/include /root/QAT/quickassist/utilities/libusdm_drv/ /root/QAT/quickassist/lookaside/access_layer/src/sample_code/fips)
-
+include_directories(${ICP_ROOT}/quickassist/include ${ICP_ROOT}/quickassist/include/lac ${ICP_ROOT}/quickassist/include/dc ${ICP_ROOT}/quickassist/lookaside/access_layer/include ${ICP_ROOT}/quickassist/lookaside/access_layer/src/sample_code/functional/include ${ICP_ROOT}/quickassist/utilities/libusdm_drv/ ${ICP_ROOT}/quickassist/lookaside/access_layer/src/sample_code/fips)
 add_definitions(-DUSER_SPACE -DDO_CRYPTO -DWITH_UPSTREAM -DWITH_CMDRV -fpermissive)
-
-link_libraries(/root/QAT/quickassist/lookaside/access_layer/src/sample_code/fips/build/linux_2.6/user_space/fips_sample.a /root/QAT/build/libqat_s.so /root/QAT/quickassist/utilities/libusdm_drv//linux/build/linux_2.6/user_space/libusdm_drv.a -lpthread -lcrypto -ludev)
+link_libraries(${ICP_ROOT}/quickassist/lookaside/access_layer/src/sample_code/fips/build/linux_2.6/user_space/fips_sample.a ${ICP_ROOT}/build/libqat_s.so ${ICP_ROOT}/quickassist/utilities/libusdm_drv//linux/build/linux_2.6/user_space/libusdm_drv.a -lpthread -lcrypto -ludev)
 
 #LINK£ºopenssl
-include_directories(/home/dan/openssl-master-g/include/ )
-link_libraries(/home/dan/openssl-master-g/libssl.so /home/dan/openssl-master-g/libcrypto.so)
+set(SSL_ROOT "/home/dan/openssl-master-g")  #different for your machine 
+include_directories(${SSL_ROOT}/include/ )
+link_libraries(${SSL_ROOT}/libssl.so ${SSL_ROOT}/libcrypto.so)
 
 execute_process(COMMAND ${CMAKE_C_COMPILER} -v)
 find_package(GMP REQUIRED)
