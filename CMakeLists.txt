@@ -47,6 +47,7 @@ target_link_libraries(${LIBRARY_NAME} ${GMP_LIBRARIES})
 # END: Build commands
 
 # BEGIN: Install commands
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true) # https://stackoverflow.com/questions/17164731/installing-only-one-target-and-its-dependencies-out-of-a-complex-project-with
 set(CMAKE_INSTALL_PREFIX "/usr/local")
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_DIR} DESTINATION lib USE_SOURCE_PERMISSIONS)
 #install(DIRECTORY ${LIBRARY_DIR} DESTINATION lib USE_SOURCE_PERMISSIONS)
