@@ -11,10 +11,13 @@ Now, libhcs4QHCS have implemented Paillier’s offloading to QAT.
 
 ## Dependencies
 
+    cd /yourworkspace
+    git clone https://github.com/ColonelDan/libhcs4QHCS.git
+
 QHCS is based QAT, first we need install QAT drive (hardware version we use is dh8970).
 
-    cd /yourworkspace
-    git clone 
+    cd /yourworkspace/libhcs4QHCS/tar
+    tar -xzof QAT.tar.gz
     cd QAT
     chmod -R o-rwx *
     apt-get update
@@ -27,11 +30,14 @@ QHCS is based QAT, first we need install QAT drive (hardware version we use is d
     make install
     make samples-install
     service qat_service start
+    export ICP_ROOT=/yourworkspace/libhcs4QHCS/tar/QAT
 
 QHCS need a customed OpenSSL:
 
-    git clone 
-    you can refer to OpenSSL homepage for install it.
+    cd /yourworkspace/libhcs4QHCS/tar
+    tar -xzof  openssl-master-g.tar.gz
+    cd openssl-master-g
+    then, you can refer to OpenSSL homepage for install it.
 
 Dependencies for libhcs:
 
@@ -42,7 +48,14 @@ Dependencies for libhcs:
 Assuming all dependencies are on your system, the following will work on a
 typical linux system.
 
-    git clone https://github.com/Tiehuis/libhcs.git
+First, you need rewrite 2 macro base your dir path in CMakeLists.txt
+
+    set(ICP_ROOT "/root/QAT")   #different for your machine
+    set(SSL_ROOT "/home/dan/openssl-master-g")  #different for your machine
+
+Then, you can install:
+
+    cd /yourworkspace/libhcs4QHCS
     mkdir build
     cd build
     cmake ..
