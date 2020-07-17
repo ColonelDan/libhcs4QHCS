@@ -114,8 +114,8 @@ int Test(int nThread, int bitKey, int pollThreshold) {
 int main()
 {
 	//进行不同参数下的多组测试
-	//for (int nThread = 1; nThread <= 1; nThread *= 3)
-	for (int nThread = 6; nThread <= 6; nThread *= 3)	//线程数
+	for (int nThread = 3; nThread <= 3; nThread *= 3)
+	//for (int nThread = 6; nThread <= 6; nThread *= 3)	//线程数
 	{
 		for (int bitKey = 1024; bitKey <= 2048; bitKey *= 2)	//密钥长度
 		{
