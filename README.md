@@ -30,7 +30,13 @@ QHCS is based QAT, first we need install QAT drive (hardware version we use is d
     make install
     make samples-install
     service qat_service start
+
     export ICP_ROOT=/yourworkspace/libhcs4QHCS/tar/QAT
+
+then, rewrite 2 item in all 3 QAT config file: /etc/c6xx_dev0.conf、/etc/c6xx_dev1.conf、/etc/c6xx_dev2.conf:
+
+    CyNumConcurrentAsymRequests = 2048
+    NumberCyInstances = 1
 
 QHCS need a customed OpenSSL:
 
